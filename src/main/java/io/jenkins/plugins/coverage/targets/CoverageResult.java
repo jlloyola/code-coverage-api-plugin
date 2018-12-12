@@ -40,16 +40,7 @@ import org.kohsuke.stapler.export.ExportedBean;
 import java.io.File;
 import java.io.IOException;
 import java.io.Serializable;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.LinkedHashMap;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.TreeMap;
-import java.util.TreeSet;
+import java.util.*;
 import java.util.stream.Collectors;
 
 
@@ -590,6 +581,35 @@ public class CoverageResult implements Serializable, Chartable {
                 .entrySet()
                 .stream()
                 .collect(Collectors.toMap(Map.Entry::getKey, v -> v.getValue().jsGetResults()));
+    }
+
+    /**
+     * Interface for javascript code to get a subset of child coverage results.
+     *
+     * @return subset of child coverage results
+     */
+    @JavaScriptMethod
+    @SuppressWarnings("unused")
+    public Map<String, List<JSCoverageResult>> jsGetChildResultsPage(int offset,
+                                                                    int pageSize) {
+        TreeMap<String, List<JSCoverageResult>> results;
+        results = getChildrenReal()
+                   .entrySet()
+                   .stream()
+                   .collect(Collectors.toMap(Map.Entry::getKey, v -> v.getValue().jsGetResults(), (a,b) -> a, TreeMap::new));
+        Object[] keys = results.keySet().toArray();
+        SortedMap<String, List<JSCoverageResult>> resultsSubMap = new TreeMap<String, List<JSCoverageResult>>();
+        if ((offset >= 0 && offset < keys.length) && (pageSize >= 0 && pageSize < keys.length)) {
+            String fromKey = keys[offset].toString();
+            String toKey;
+            if (offset + pageSize < keys.length) {
+                toKey = keys[offset+pageSize].toString();
+            } else {
+                toKey = keys[keys.length-1].toString();
+            }
+            resultsSubMap = results.subMap(fromKey, toKey);
+        }
+        return resultsSubMap;
     }
 
 
